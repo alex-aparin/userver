@@ -256,6 +256,9 @@ void easy::reset() {
     if (headers_) {
         headers_->clear();
     }
+    if (mail_rcpt_) {
+        mail_rcpt_->clear();
+    }
     if (proxy_headers_) {
         proxy_headers_->clear();
     }
@@ -497,6 +500,21 @@ void easy::set_headers(std::shared_ptr<string_list> headers, std::error_code& ec
             static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPHEADER, NULL))
         };
     }
+}
+
+void easy::set_mail_rcpt(std::shared_ptr<string_list> recipients) {
+    std::error_code ec;
+    set_mail_rcpt(std::move(recipients), ec);
+    throw_error(ec, "set_mail_rcpt");
+}
+
+void easy::set_mail_rcpt(std::shared_ptr<string_list> recipients, std::error_code& ec) {
+    mail_rcpt_ = std::move(recipients);
+
+    native::curl_slist* native_list = mail_rcpt_ ? mail_rcpt_->native_handle() : nullptr;
+    ec = std::error_code{
+        static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_MAIL_RCPT, native_list))
+    };
 }
 
 void easy::add_proxy_header(

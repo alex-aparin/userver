@@ -496,6 +496,13 @@ public:
     IMPLEMENT_CURL_OPTION_ENUM(set_time_condition, native::CURLOPT_TIMECONDITION, time_condition_t, long);
     IMPLEMENT_CURL_OPTION(set_time_value, native::CURLOPT_TIMEVALUE, long);
 
+    // SMTP options
+
+    IMPLEMENT_CURL_OPTION_STRING(set_mail_from, native::CURLOPT_MAIL_FROM);
+    IMPLEMENT_CURL_OPTION_STRING(set_mail_auth, native::CURLOPT_MAIL_AUTH);
+    void set_mail_rcpt(std::shared_ptr<string_list> recipients);
+    void set_mail_rcpt(std::shared_ptr<string_list> recipients, std::error_code& ec);
+
     // connection options
 
     IMPLEMENT_CURL_OPTION(set_timeout, native::CURLOPT_TIMEOUT, long);
@@ -733,6 +740,7 @@ private:
     std::string post_fields_;
     std::shared_ptr<form> form_;
     std::shared_ptr<string_list> headers_;
+    std::shared_ptr<string_list> mail_rcpt_;
     std::shared_ptr<string_list> proxy_headers_;
     std::shared_ptr<string_list> http200_aliases_;
     std::shared_ptr<string_list> resolved_hosts_;
