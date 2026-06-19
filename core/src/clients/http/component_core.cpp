@@ -9,8 +9,8 @@
 #include <userver/server/middlewares/headers_propagator.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
-#include <clients/http/destination_statistics.hpp>
-#include <clients/http/statistics.hpp>
+#include <clients/common/destination_statistics.hpp>
+#include <clients/common/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <userver/clients/http/client_core.hpp>
 #include <userver/clients/http/config.hpp>
@@ -42,7 +42,7 @@ clients::http::ClientSettings GetClientSettings(
     settings.tracing_manager = &tracing_locator.GetTracingManager();
     settings.cancellation_policy =
         component_config["cancellation-policy"]
-            .As<clients::http::CancellationPolicy>(clients::http::CancellationPolicy::kCancel);
+            .As<clients::common::CancellationPolicy>(clients::common::CancellationPolicy::kCancel);
     return settings;
 }
 

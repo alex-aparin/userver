@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include <userver/clients/http/cancellation_policy.hpp>
+#include <userver/clients/common/cancellation_policy.hpp>
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/formats/json_fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
@@ -32,7 +32,7 @@ struct ClientSettings final {
     size_t io_threads{8};
     DeadlinePropagationConfig deadline_propagation{};
     const tracing::TracingManagerBase* tracing_manager{nullptr};
-    CancellationPolicy cancellation_policy{CancellationPolicy::kCancel};
+    common::CancellationPolicy cancellation_policy{common::CancellationPolicy::kCancel};
 };
 
 ClientSettings Parse(const yaml_config::YamlConfig& value, formats::parse::To<ClientSettings>);

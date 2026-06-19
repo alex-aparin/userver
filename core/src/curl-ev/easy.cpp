@@ -265,6 +265,12 @@ void easy::reset() {
     set_no_body(false);
     set_post(false);
 
+    // SMTP related members
+    mail_from_.clear();
+    if (recipients_) {
+        recipients_->clear();
+    }
+
     // MAC_COMPAT: Secure Transport does not provide these
     std::error_code ec;
     set_ssl_ctx_data(nullptr, ec);
@@ -566,6 +572,26 @@ void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases, std
     }
 }
 
+void easy::set_mail_from(std::string&& mail_from) {
+    mail_from_ = std::move(mail_from);
+    std::error_code ec = std::error_code{static_cast<errc::EasyErrorCode>(
+        native::curl_easy_setopt(handle_, native::CURLOPT_MAIL_FROM, mail_from_.c_str()))};
+    throw_error(ec, "set_mail_from");
+}
+
+void easy::set_recipients(std::vector<std::string>&& recipients) {
+    if (!recipients_) {
+        recipients_ = std::make_shared<string_list>();
+    }
+    recipients_->clear();
+    for (std::string& item : recipients) {
+        recipients_->add(std::move(item));
+    }
+    const auto ec = std::error_code{static_cast<errc::EasyErrorCode>(
+            native::curl_easy_setopt(handle_, native:: CURLOPT_MAIL_RCPT, recipients_->native_handle()))};
+    throw_error(ec, "set_recipients");
+}
+
 void easy::add_resolve(const std::string& host, const std::string& port, const std::string& addr) {
     std::error_code ec;
     add_resolve(host, port, addr, ec);
@@ -664,8 +690,8 @@ void easy::handle_completion(const std::error_code& err) {
 
 void easy::mark_retry() { ++retries_count_; }
 
-clients::http::LocalStats easy::get_local_stats() {
-    clients::http::LocalStats stats;
+clients::common::LocalStats easy::get_local_stats() {
+    clients::common::LocalStats stats;
 
     stats.open_socket_count = sockets_opened_;
     stats.retries_count = retries_count_;

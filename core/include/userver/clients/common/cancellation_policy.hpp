@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http {
+namespace clients::common {
 
 enum class CancellationPolicy {
     kIgnore,

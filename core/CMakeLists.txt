@@ -110,6 +110,7 @@ list(
     src/clients/http/component_core.yaml
     src/clients/http/middlewares/pipeline_component.yaml
     src/clients/http/middlewares/retry_budget/component.yaml
+    src/clients/smtp/component.yaml
     src/components/impl/component_base.yaml
     src/components/dump_configurator.yaml
     src/components/fs_cache.yaml

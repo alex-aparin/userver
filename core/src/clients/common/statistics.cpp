@@ -1,4 +1,4 @@
-#include <clients/http/statistics.hpp>
+#include <clients/common/statistics.hpp>
 
 #include <utility>
 
@@ -12,7 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http {
+namespace clients::common {
 
 namespace {
 

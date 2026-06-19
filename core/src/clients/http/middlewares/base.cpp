@@ -1,13 +1,13 @@
 #include <userver/clients/http/middlewares/base.hpp>
 
-#include <clients/http/request_state.hpp>
+#include <clients/common/request_state.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-MiddlewareRequest::MiddlewareRequest(RequestState& state)
+MiddlewareRequest::MiddlewareRequest(common::RequestState& state)
     : state_(state)
 {}
 

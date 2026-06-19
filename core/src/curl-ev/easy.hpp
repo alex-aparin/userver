@@ -24,7 +24,7 @@
 #include <curl-ev/ratelimit.hpp>
 #include <curl-ev/url.hpp>
 
-#include <userver/clients/http/local_stats.hpp>
+#include <userver/clients/common/local_stats.hpp>
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/utils/zstring_view.hpp>
 
@@ -473,6 +473,10 @@ public:
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_http_content_decoding, native::CURLOPT_HTTP_CONTENT_DECODING);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_http_transfer_decoding, native::CURLOPT_HTTP_TRANSFER_DECODING);
 
+    // smtp options
+    void set_mail_from(std::string&& mail_from);
+    void set_recipients(std::vector<std::string>&& recipients);
+
     // protocol options
 
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_transfer_text, native::CURLOPT_TRANSFERTEXT);
@@ -679,7 +683,7 @@ public:
 
     void mark_retry();
 
-    clients::http::LocalStats get_local_stats();
+    clients::common::LocalStats get_local_stats();
 
     std::error_code rate_limit_error() const;
 
@@ -741,6 +745,9 @@ private:
     std::size_t retries_count_{0};
     std::size_t sockets_opened_{0};
     std::error_code rate_limit_error_;
+//  SMTP related fields
+    std::string mail_from_;
+    std::shared_ptr<string_list> recipients_;
 
     time_point start_performing_ts_{};
     const time_point construct_ts_;

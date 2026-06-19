@@ -2,7 +2,7 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
-#include <clients/http/request_state.hpp>
+#include <clients/common/request_state.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/utils/algo.hpp>
 
@@ -14,7 +14,7 @@ MiddlewaresPipeline::MiddlewaresPipeline(utils::span<const utils::NotNull<Middle
     : middlewares_(middlewares)
 {}
 
-void MiddlewaresPipeline::HookCreateSpan(RequestState& request_state, tracing::Span& span) {
+void MiddlewaresPipeline::HookCreateSpan(common::RequestState& request_state, tracing::Span& span) {
     MiddlewareRequest req(request_state);
 
     for (const auto& middleware : middlewares_) {
@@ -22,7 +22,7 @@ void MiddlewaresPipeline::HookCreateSpan(RequestState& request_state, tracing::S
     }
 }
 
-void MiddlewaresPipeline::HookOnCompleted(RequestState& request_state, Response& response) {
+void MiddlewaresPipeline::HookOnCompleted(common::RequestState& request_state, Response& response) {
     MiddlewareRequest req(request_state);
 
     // NOLINTNEXTLINE(modernize-loop-convert)
@@ -31,7 +31,7 @@ void MiddlewaresPipeline::HookOnCompleted(RequestState& request_state, Response&
     }
 }
 
-void MiddlewaresPipeline::HookOnError(RequestState& request_state, std::error_code ec) {
+void MiddlewaresPipeline::HookOnError(common::RequestState& request_state, std::error_code ec) {
     MiddlewareRequest req(request_state);
 
     // NOLINTNEXTLINE(modernize-loop-convert)
@@ -40,7 +40,7 @@ void MiddlewaresPipeline::HookOnError(RequestState& request_state, std::error_co
     }
 }
 
-bool MiddlewaresPipeline::HookOnRetry(RequestState& request_state) {
+bool MiddlewaresPipeline::HookOnRetry(common::RequestState& request_state) {
     MiddlewareRequest req(request_state);
 
     for (const auto& middleware : middlewares_) {
@@ -51,7 +51,7 @@ bool MiddlewaresPipeline::HookOnRetry(RequestState& request_state) {
     return true;
 }
 
-void MiddlewaresPipeline::HookPerformRequest(RequestState& request_state) {
+void MiddlewaresPipeline::HookPerformRequest(common::RequestState& request_state) {
     MiddlewareRequest req(request_state);
 
     for (const auto& middleware : middlewares_) {

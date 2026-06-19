@@ -17,10 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::common {
 class RequestState;
-}
-
-namespace clients::http {
-
 
 
 namespace impl {
@@ -29,6 +25,7 @@ class EasyWrapper;
 
 /// @brief Allows to perform a request concurrently with other work without
 /// creating an extra coroutine for waiting.
+template <typename T>
 class ResponseFuture final {
 public:
     ResponseFuture(ResponseFuture&& other) noexcept;
@@ -50,19 +47,19 @@ public:
     std::future_status Wait(utils::impl::SourceLocation location = utils::impl::SourceLocation::Current());
 
     /// @brief Wait for the response and return it
-    std::shared_ptr<Response> Get(utils::impl::SourceLocation location = utils::impl::SourceLocation::Current());
+    std::shared_ptr<T> Get(utils::impl::SourceLocation location = utils::impl::SourceLocation::Current());
 
     /// @cond
     /// Internal helper for WaitAny/WaitAll
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
 
-    ResponseFuture(engine::Future<std::shared_ptr<Response>>&& future, std::shared_ptr<common::RequestState> request);
+    ResponseFuture(engine::Future<std::shared_ptr<T>>&& future, std::shared_ptr<common::RequestState> request);
     /// @endcond
 
 private:
     void CancelOrDetach();
 
-    engine::Future<std::shared_ptr<Response>> future_;
+    engine::Future<std::shared_ptr<T>> future_;
     engine::Deadline deadline_;
     std::shared_ptr<common::RequestState> request_state_;
     bool was_deadline_propagated_{false};

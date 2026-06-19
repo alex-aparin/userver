@@ -1,14 +1,13 @@
-#include <clients/http/easy_wrapper.hpp>
+#include <clients/common/easy_wrapper.hpp>
 
-#include <userver/clients/http/client_core.hpp>
-#include <userver/clients/http/response_future.hpp>
+#include <userver/clients/common/client_core.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http::impl {
+namespace clients::common::impl {
 
-EasyWrapper::EasyWrapper(std::shared_ptr<curl::easy>&& easy, ClientCore& client)
+EasyWrapper::EasyWrapper(std::shared_ptr<curl::easy>&& easy, ClientBase& client)
     : easy_(std::move(easy)),
       client_(client)
 {

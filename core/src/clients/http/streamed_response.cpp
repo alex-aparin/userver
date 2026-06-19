@@ -2,7 +2,7 @@
 
 #include <algorithm>  // for std::min
 
-#include <clients/http/request_state.hpp>
+#include <clients/common/request_state.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -11,7 +11,7 @@ namespace clients::http {
 
 namespace {
 
-engine::Deadline ComputeBaseDeadline(RequestState& request_state) {
+engine::Deadline ComputeBaseDeadline(common::RequestState& request_state) {
     return engine::Deadline::FromDuration(std::chrono::milliseconds(request_state.timeout()));
 }
 
@@ -20,7 +20,7 @@ engine::Deadline ComputeBaseDeadline(RequestState& request_state) {
 StreamedResponse::StreamedResponse(
     engine::Future<void>&& headers_future,
     Queue::Consumer&& queue_consumer,
-    std::shared_ptr<RequestState> request_state
+    std::shared_ptr<common::RequestState> request_state
 )
     : request_state_(std::move(request_state)),
       deadline_(std::min(ComputeBaseDeadline(*request_state_), request_state_->GetDeadline())),
@@ -41,15 +41,15 @@ std::future_status StreamedResponse::WaitForHeaders(engine::Deadline deadline) {
     }
     headers_future_.get();  // maybe throws an exception
 
-    response_ = request_state_->response();
-    UASSERT(response_);
+    const auto not_empty = !request_state_->IsResponseEmpty();
+    UASSERT(not_empty);
     return std::future_status::ready;
 }
 
 void StreamedResponse::WaitForHeadersOrThrow(engine::Deadline deadline) {
     auto status = WaitForHeaders(deadline);
     if (status != std::future_status::ready) {
-        throw clients::http::TimeoutException("Timeout on streamed response", {});
+        throw clients::common::TimeoutException("Timeout on streamed response", {});
     }
 }
 

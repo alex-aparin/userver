@@ -5,7 +5,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http {
+namespace clients::common {
 
 /// Additional tag to the exception.
 enum class ErrorKind {

@@ -6,11 +6,11 @@
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
-#include <clients/http/statistics.hpp>
+#include <clients/common/statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http {
+namespace clients::common {
 
 class DestinationStatistics final {
 public:

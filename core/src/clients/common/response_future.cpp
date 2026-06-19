@@ -1,4 +1,4 @@
-#include <userver/clients/http/response_future.hpp>
+#include <userver/clients/common/response_future.hpp>
 
 #include <algorithm>
 
@@ -7,9 +7,12 @@
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/trx_tracker.hpp>
 
+#include <userver/clients/smtp/response.hpp>
+#include <userver/clients/http/response.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http {
+namespace clients::common {
 
 namespace {
 
@@ -37,9 +40,9 @@ engine::Deadline ComputeBaseDeadline(common::RequestState& request_state) {
 }
 
 }  // namespace
-
-ResponseFuture::ResponseFuture(
-    engine::Future<std::shared_ptr<Response>>&& future,
+template <typename T>
+ResponseFuture<T>::ResponseFuture(
+    engine::Future<std::shared_ptr<T>>&& future,
     std::shared_ptr<common::RequestState> request_state
 )
     : future_(std::move(future)),
@@ -54,13 +57,15 @@ ResponseFuture::ResponseFuture(
     }
 }
 
-ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept : cancellation_policy_(other.cancellation_policy_) {
+template <typename T>
+ResponseFuture<T>::ResponseFuture(ResponseFuture&& other) noexcept : cancellation_policy_(other.cancellation_policy_) {
     std::swap(future_, other.future_);
     std::swap(deadline_, other.deadline_);
     std::swap(request_state_, other.request_state_);
 }
 
-ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept {
+template <typename T>
+ResponseFuture<T>& ResponseFuture<T>::operator=(ResponseFuture<T>&& other) noexcept {
     if (&other == this) {
         return *this;
     }
@@ -73,9 +78,11 @@ ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept {
     return *this;
 }
 
-ResponseFuture::~ResponseFuture() { CancelOrDetach(); }
+template <typename T>
+ResponseFuture<T>::~ResponseFuture() { CancelOrDetach(); }
 
-void ResponseFuture::CancelOrDetach() {
+template <typename T>
+void ResponseFuture<T>::CancelOrDetach() {
     switch (cancellation_policy_) {
         case common::CancellationPolicy::kIgnore:
             Detach();
@@ -86,19 +93,22 @@ void ResponseFuture::CancelOrDetach() {
     }
 }
 
-void ResponseFuture::Cancel() {
+template <typename T>
+void ResponseFuture<T>::Cancel() {
     if (request_state_) {
         request_state_->Cancel();
     }
     Detach();
 }
 
-void ResponseFuture::Detach() {
+template <typename T>
+void ResponseFuture<T>::Detach() {
     future_ = {};
     request_state_.reset();
 }
 
-std::future_status ResponseFuture::Wait(utils::impl::SourceLocation location) {
+template <typename T>
+std::future_status ResponseFuture<T>::Wait(utils::impl::SourceLocation location) {
     utils::trx_tracker::CheckNoTransactions(location);
 
     switch (future_.wait_until(deadline_)) {
@@ -128,7 +138,8 @@ std::future_status ResponseFuture::Wait(utils::impl::SourceLocation location) {
     UINVARIANT(false, "Invalid engine::FutureStatus");
 }
 
-std::shared_ptr<Response> ResponseFuture::Get(utils::impl::SourceLocation location) {
+template <typename T>
+std::shared_ptr<T> ResponseFuture<T>::Get(utils::impl::SourceLocation location) {
     const auto future_status = Wait(location);
     if (future_status == std::future_status::ready) {
         if (request_state_->IsDeadlineExpired()) {
@@ -142,10 +153,14 @@ std::shared_ptr<Response> ResponseFuture::Get(utils::impl::SourceLocation locati
     throw common::TimeoutException("Future timeout", {});  // no local stats available
 }
 
-engine::impl::ContextAccessor* ResponseFuture::TryGetContextAccessor() noexcept {
+template <typename T>
+engine::impl::ContextAccessor* ResponseFuture<T>::TryGetContextAccessor() noexcept {
     return future_.TryGetContextAccessor();
 }
 
 }  // namespace clients::http
+
+template class clients::common::ResponseFuture<clients::http::Response>;
+template class clients::common::ResponseFuture<clients::smtp::Response>;
 
 USERVER_NAMESPACE_END

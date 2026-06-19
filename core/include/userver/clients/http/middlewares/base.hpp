@@ -17,9 +17,12 @@ namespace tracing {
 class Span;
 }
 
+namespace clients::common {
+    class RequestState;
+}
+
 namespace clients::http {
 
-class RequestState;
 class Response;
 
 /// @brief Auxiliary entity that allows editing request to a client
@@ -27,7 +30,7 @@ class Response;
 class MiddlewareRequest final {
 public:
     /// @cond
-    explicit MiddlewareRequest(RequestState& state);
+    explicit MiddlewareRequest(common::RequestState& state);
     /// @endcond
 
     void SetHeader(std::string_view name, std::string_view value);
@@ -43,7 +46,7 @@ public:
     const std::string& GetOriginalUrl() const;
 
 private:
-    RequestState& state_;
+    common::RequestState& state_;
 };
 
 /// @brief Base class for HTTP Client middlewares

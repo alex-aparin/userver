@@ -5,7 +5,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http {
+namespace clients::common {
 
 /// Represents all the local timings and statistics
 struct LocalStats final {

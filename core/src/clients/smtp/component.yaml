@@ -1,0 +1,12 @@
+type: object
+description: Component that manages clients::smtp::Client.
+additionalProperties: false
+properties:
+    thread-name-prefix:
+        type: string
+        description: set OS thread name to this value
+        default: ''
+    threads:
+        type: integer
+        description: number of threads to process low level SMTP related IO system calls
+        default: 1

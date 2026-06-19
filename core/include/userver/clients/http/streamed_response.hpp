@@ -12,9 +12,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http {
-
+namespace clients::common {
 class RequestState;
+}
+
+namespace clients::http {
 
 /// @brief HTTP response for streamed API.
 ///
@@ -57,7 +59,7 @@ public:
     StreamedResponse(
         engine::Future<void>&& headers_future,
         Queue::Consumer&& queue_consumer,
-        std::shared_ptr<clients::http::RequestState> request_state
+        std::shared_ptr<clients::common::RequestState> request_state
     );
     /// @endcond
 
@@ -66,7 +68,7 @@ private:
 
     void WaitForHeadersOrThrow(engine::Deadline);
 
-    std::shared_ptr<RequestState> request_state_;
+    std::shared_ptr<common::RequestState> request_state_;
     // re-use sync response's headers & status code storage
     std::shared_ptr<Response> response_;
     engine::Deadline deadline_;

@@ -29,6 +29,19 @@ namespace utils::impl {
 class WaitTokenStorageLock;
 }  // namespace utils::impl
 
+namespace clients::common {
+namespace impl {
+class EasyWrapper;
+}  // namespace impl
+
+
+
+class RequestStats;
+class DestinationStatistics;
+
+}  // namespace utils::impl
+
+
 /// HTTP client helpers
 namespace clients::http {
 
@@ -38,14 +51,10 @@ class WebSocketResponse;
 class ConnectTo;
 class Form;
 struct DeadlinePropagationConfig;
-class RequestStats;
-class DestinationStatistics;
+
 struct TestsuiteConfig;
 class MiddlewareBase;
 
-namespace impl {
-class EasyWrapper;
-}  // namespace impl
 
 /// @brief HTTP request method
 enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
@@ -94,9 +103,9 @@ public:
     /// @cond
     // For internal use only.
     explicit Request(
-        impl::EasyWrapper&&,
-        RequestStats&& req_stats,
-        const std::shared_ptr<DestinationStatistics>& dest_stats,
+        common::impl::EasyWrapper&&,
+        common::RequestStats&& req_stats,
+        const std::shared_ptr<common::DestinationStatistics>& dest_stats,
         clients::dns::Resolver* resolver,
         const tracing::TracingManagerBase& tracing_manager
     );
@@ -385,7 +394,7 @@ public:
     /// @overload
     Request DisableReplyDecoding() &&;
 
-    void SetCancellationPolicy(CancellationPolicy cp);
+    void SetCancellationPolicy(common::CancellationPolicy cp);
 
     /// Override the default tracing manager from HTTP client for this particular request.
     Request& SetTracingManager(const tracing::TracingManagerBase&) &;
@@ -444,7 +453,7 @@ public:
     std::string ExtractData();
 
 private:
-    std::shared_ptr<RequestState> pimpl_;
+    std::shared_ptr<http::RequestState> pimpl_;
 };
 
 }  // namespace clients::http

@@ -14,6 +14,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/config.hpp>
+#include <userver/clients/common/client_core.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -41,15 +42,22 @@ namespace engine::ev {
 class ThreadPool;
 }  // namespace engine::ev
 
-namespace clients::http {
+namespace clients::common {
+struct InstanceStatistics;
+class Statistics;
+struct PoolStatistics;
 namespace impl {
 class EasyWrapper;
 }  // namespace impl
+}
+
+namespace clients::http {
+
 
 struct TestsuiteConfig;
-class Statistics;
-struct PoolStatistics;
-struct InstanceStatistics;
+
+
+
 class DestinationStatistics;
 
 /// @ingroup userver_clients
@@ -62,7 +70,7 @@ class DestinationStatistics;
 /// ## Example usage:
 ///
 /// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
-class ClientCore final : public Client {
+class ClientCore final : public Client, public common::ClientBase {
 public:
     /// @cond
     // For internal use only
@@ -87,14 +95,14 @@ public:
     void SetMaxHostConnections(size_t max_host_connections);
 
     // For internal use only.
-    PoolStatistics GetPoolStatistics() const;
+    common::PoolStatistics GetPoolStatistics() const;
 
     // Set max number of automatically created destination metrics.
     // For internal use only.
     void SetDestinationMetricsAutoMaxSize(size_t max_size);
 
     // For internal use only.
-    const http::DestinationStatistics& GetDestinationStatistics() const;
+    const common::DestinationStatistics& GetDestinationStatistics() const;
 
     // For internal use only.
     void SetTestsuiteConfig(TestsuiteConfig&& config);
@@ -118,27 +126,27 @@ public:
 private:
     void ReinitEasy();
 
-    InstanceStatistics GetMultiStatistics(size_t n) const;
+    common::InstanceStatistics GetMultiStatistics(size_t n) const;
 
     size_t FindMultiIndex(const curl::multi*) const;
 
     // Functions for EasyWrapper that must be noexcept, as they are called from
     // the EasyWrapper destructor.
     friend class impl::EasyWrapper;
-    void IncPending() noexcept { ++pending_tasks_; }
-    void DecPending() noexcept { --pending_tasks_; }
-    void PushIdleEasy(std::shared_ptr<curl::easy>&& easy) noexcept;
+    virtual void IncPending() noexcept override { ++pending_tasks_; }
+    virtual void DecPending() noexcept override { --pending_tasks_; }
+    virtual void PushIdleEasy(std::shared_ptr<curl::easy>&& easy) noexcept override;
 
     std::shared_ptr<curl::easy> TryDequeueIdle() noexcept;
 
     std::atomic<std::size_t> pending_tasks_{0};
 
     const DeadlinePropagationConfig deadline_propagation_config_;
-    CancellationPolicy cancellation_policy_;
+    common::CancellationPolicy cancellation_policy_;
 
-    std::shared_ptr<DestinationStatistics> destination_statistics_;
+    std::shared_ptr<common::DestinationStatistics> destination_statistics_;
     std::unique_ptr<engine::ev::ThreadPool> thread_pool_;
-    std::vector<Statistics> statistics_;
+    std::vector<common::Statistics> statistics_;
     std::vector<std::unique_ptr<curl::multi>> multis_;
 
     static constexpr size_t kIdleQueueSize = 616;

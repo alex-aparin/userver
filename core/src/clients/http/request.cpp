@@ -21,10 +21,10 @@
 #include <userver/utils/str_icase.hpp>
 #include <userver/utils/trivial_map.hpp>
 
-#include <clients/http/destination_statistics.hpp>
-#include <clients/http/easy_wrapper.hpp>
+#include <clients/common/destination_statistics.hpp>
+#include <clients/common/easy_wrapper.hpp>
 #include <clients/http/request_state.hpp>
-#include <clients/http/statistics.hpp>
+#include <clients/common/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
@@ -165,7 +165,7 @@ void SetProxyHeaders(curl::easy& easy, const Range& headers_range) {
 }
 
 bool IsAllowedSchemaInUrl(std::string_view url) {
-    static constexpr std::string_view kAllowedSchemas[] = {"http://", "https://", "ws://", "wss://"};
+    static constexpr std::string_view kAllowedSchemas[] = {"http://", "https://", "ws://", "wss://", "smtp://"};
 
     for (const std::string_view allowed_schema : kAllowedSchemas) {
         if (utils::StrIcaseEqual{}(allowed_schema, url.substr(0, allowed_schema.size()))) {
@@ -202,9 +202,9 @@ ProxyAuthType ProxyAuthTypeFromString(std::string_view auth_name) {
 // Request implementation
 
 Request::Request(
-    impl::EasyWrapper&& wrapper,
-    RequestStats&& req_stats,
-    const std::shared_ptr<DestinationStatistics>& dest_stats,
+    common::impl::EasyWrapper&& wrapper,
+    common::RequestStats&& req_stats,
+    const std::shared_ptr<common::DestinationStatistics>& dest_stats,
     clients::dns::Resolver* resolver,
     const tracing::TracingManagerBase& tracing_manager
 )
@@ -217,7 +217,7 @@ Request::Request(
     pimpl_->verify(true);
 
     if (engine::current_task::ShouldCancel()) {
-        throw CancelException("Failed to make HTTP request due to task cancellation", {}, ErrorKind::kCancel);
+        throw common::CancelException("Failed to make HTTP request due to task cancellation", {}, common::ErrorKind::kCancel);
     }
 }
 
@@ -244,16 +244,16 @@ WebSocketResponse Request::PerformWebSocketHandshake(utils::impl::SourceLocation
 
 Request& Request::url(std::string url) & {
     if (!IsAllowedSchemaInUrl(url)) {
-        throw BadArgumentException(curl::errc::EasyErrorCode::kUnsupportedProtocol, "Bad URL", url, {});
+        throw common::BadArgumentException(curl::errc::EasyErrorCode::kUnsupportedProtocol, "Bad URL", url, {});
     }
 
-    RequestState& impl = *pimpl_;
+    common::RequestState& impl = *pimpl_;
     std::error_code ec;
     impl.easy().set_url(std::move(url), ec);
 
     /// `curl::easy::set_url(std::string&&, std::error_code&)` doesn't consume the string if fails.
     if (ec) {
-        throw BadArgumentException(ec, "Bad URL", url, {});
+        throw common::BadArgumentException(ec, "Bad URL", url, {});
     }
 
     impl.SetDestinationMetricNameAuto(std::string{
@@ -355,7 +355,7 @@ Request Request::data(std::string data) && { return std::move(this->data(std::mo
 
 Request& Request::form(Form&& form) & {
     pimpl_->easy().set_http_post(std::move(form).GetNative());
-    pimpl_->easy().add_header(kHeaderExpect, "", curl::easy::EmptyHeaderAction::kDoNotSend);
+    pimpl_->easy().add_header(common::kHeaderExpect, "", curl::easy::EmptyHeaderAction::kDoNotSend);
     return *this;
 }
 Request Request::form(Form&& form) && { return std::move(this->form(std::move(form))); }
@@ -572,7 +572,7 @@ Request& Request::DisableReplyDecoding() & {
 }
 Request Request::DisableReplyDecoding() && { return std::move(this->DisableReplyDecoding()); }
 
-void Request::SetCancellationPolicy(CancellationPolicy cp) { pimpl_->SetCancellationPolicy(cp); }
+void Request::SetCancellationPolicy(common::CancellationPolicy cp) { pimpl_->SetCancellationPolicy(cp); }
 
 Request& Request::SetTracingManager(const tracing::TracingManagerBase& tracing_manager) & {
     pimpl_->SetTracingManager(tracing_manager);

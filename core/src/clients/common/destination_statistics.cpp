@@ -1,11 +1,11 @@
-#include <clients/http/destination_statistics.hpp>
+#include <clients/common/destination_statistics.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http {
+namespace clients::common {
 
 std::shared_ptr<RequestStats> DestinationStatistics::GetStatisticsForDestination(const std::string& destination) {
     auto ptr = GetExistingStatisticsForDestination(destination);

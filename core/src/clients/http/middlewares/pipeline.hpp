@@ -11,15 +11,15 @@ public:
     MiddlewaresPipeline() = default;
     explicit MiddlewaresPipeline(utils::span<const utils::NotNull<MiddlewareBase*>> middlewares);
 
-    void HookPerformRequest(RequestState& request);
+    void HookPerformRequest(common::RequestState& request);
 
-    void HookCreateSpan(RequestState& request, tracing::Span& span);
+    void HookCreateSpan(common::RequestState& request, tracing::Span& span);
 
-    void HookOnCompleted(RequestState& request, Response& response);
+    void HookOnCompleted(common::RequestState& request, Response& response);
 
-    void HookOnError(RequestState& request, std::error_code ec);
+    void HookOnError(common::RequestState& request, std::error_code ec);
 
-    bool HookOnRetry(RequestState& request);
+    bool HookOnRetry(common::RequestState& request);
 
 private:
     utils::span<const utils::NotNull<MiddlewareBase*>> middlewares_;

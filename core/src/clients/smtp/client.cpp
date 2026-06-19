@@ -1,4 +1,4 @@
-#include <userver/clients/http/client_core.hpp>
+#include <userver/clients/smtp/client.hpp>
 
 #include <chrono>
 #include <cstdlib>
@@ -17,18 +17,16 @@
 
 #include <clients/common/destination_statistics.hpp>
 #include <clients/common/easy_wrapper.hpp>
-#include <clients/common/statistics.hpp>
-#include <clients/http/testsuite.hpp>
 #include <curl-ev/multi.hpp>
 #include <curl-ev/ratelimit.hpp>
 #include <engine/ev/thread_pool.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http {
+namespace clients::smtp {
 namespace {
 
-constexpr utils::StringLiteral kIoThreadName = "curl";
+constexpr utils::StringLiteral kIoThreadName = "curl-smtp";
 constexpr std::chrono::minutes kEasyReinitPeriod{1};
 
 // cURL accepts options as long, but we use size_t to avoid writing checks.
@@ -46,15 +44,12 @@ const tracing::TracingManagerBase* GetTracingManager(const ClientSettings& setti
 
 }  // namespace
 
-ClientCore::ClientCore(utils::impl::InternalTag, ClientSettings settings, engine::TaskProcessor& fs_task_processor)
-    : deadline_propagation_config_(settings.deadline_propagation),
-      cancellation_policy_(settings.cancellation_policy),
-      destination_statistics_(std::make_shared<common::DestinationStatistics>()),
-      statistics_(settings.io_threads),
-      fs_task_processor_(fs_task_processor),
-      user_agent_(utils::GetUserverIdentifier()),
-      connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()),
-      tracing_manager_(GetTracingManager(settings))
+Client::Client(utils::impl::InternalTag, ClientSettings settings, engine::TaskProcessor& fs_task_processor)
+    : fs_task_processor_(fs_task_processor),
+    destination_statistics_(std::make_shared<common::DestinationStatistics>()),
+    statistics_(settings.io_threads),
+    connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()),
+    tracing_manager_(GetTracingManager(settings))
 {
     const auto io_threads = settings.io_threads;
     const auto& thread_name_prefix = settings.thread_name_prefix;
@@ -83,10 +78,10 @@ ClientCore::ClientCore(utils::impl::InternalTag, ClientSettings settings, engine
         ReinitEasy();
     });
 
-    SetConfig({});
+    //SetConfig({});
 }
 
-ClientCore::~ClientCore() {
+Client::~Client() {
     easy_reinit_task_.Stop();
 
     // We have to destroy *this only when all the requests are finished, because
@@ -109,7 +104,7 @@ ClientCore::~ClientCore() {
     thread_pool_.reset();
 }
 
-Request ClientCore::CreateRequest() {
+Request Client::CreateRequest() {
     auto request = [this] {
         auto easy = TryDequeueIdle();
         if (easy) {
@@ -146,59 +141,27 @@ Request ClientCore::CreateRequest() {
         }
     }();
 
-    if (testsuite_config_) {
-        request.SetTestsuiteConfig(testsuite_config_);
-    }
-    auto urls = allowed_urls_extra_.Read();
-    request.SetAllowedUrlsExtra(*urls);
-
-    if (user_agent_) {
-        request.user_agent(*user_agent_);
-    }
-
-    request.SetDeadlinePropagationConfig(deadline_propagation_config_);
-    request.SetCancellationPolicy(cancellation_policy_);
+    //if (testsuite_config_) {
+    //    request.SetTestsuiteConfig(testsuite_config_);
+    //}
+    //auto urls = allowed_urls_extra_.Read();
+    //request.SetAllowedUrlsExtra(*urls);
+//
+    //if (user_agent_) {
+    //    request.user_agent(*user_agent_);
+    //}
+//
+    //request.SetDeadlinePropagationConfig(deadline_propagation_config_);
+    //request.SetCancellationPolicy(cancellation_policy_);
 
     return request;
 }
 
-void ClientCore::SetMultiplexingEnabled(bool enabled) {
-    for (auto& multi : multis_) {
-        multi->SetMultiplexingEnabled(enabled);
-    }
-}
-
-void ClientCore::SetMaxHostConnections(size_t max_host_connections) {
-    for (auto& multi : multis_) {
-        multi->SetMaxHostConnections(ClampToLong(max_host_connections));
-    }
-}
-
-void ClientCore::SetDnsResolver(clients::dns::Resolver* resolver) { resolver_ = resolver; }
-
-std::size_t ClientCore::GetActiveRequestCountDebug() const { return pending_tasks_.load(); }
-
-void ClientCore::ReinitEasy() {
+void Client::ReinitEasy() {
     easy_.Set(utils::CriticalAsync(fs_task_processor_, "http_easy_reinit", &curl::easy::CreateBlocking).Get());
 }
 
-common::InstanceStatistics ClientCore::GetMultiStatistics(size_t n) const {
-    UASSERT(n < statistics_.size());
-    common::InstanceStatistics s(statistics_[n]);
-
-    /* Update statistics from multi in place */
-    const auto& multi_stats = multis_[n]->Statistics();
-
-    /* There is a race between close/open updates, so at least make open>=close
-     * to observe non-negative current socket count. */
-    s.multi.socket_close.value = multi_stats.close_socket_total();
-    s.multi.socket_open.value = multi_stats.open_socket_total();
-    s.multi.current_load = multi_stats.get_busy_storage().GetCurrentLoad();
-    s.multi.socket_ratelimit.value = multi_stats.socket_ratelimited_total();
-    return s;
-}
-
-size_t ClientCore::FindMultiIndex(const curl::multi* multi) const {
+size_t Client::FindMultiIndex(const curl::multi* multi) const {
     for (size_t i = 0; i < multis_.size(); i++) {
         if (multis_[i].get() == multi) {
             return i;
@@ -208,22 +171,7 @@ size_t ClientCore::FindMultiIndex(const curl::multi* multi) const {
     throw std::logic_error("Unknown multi");
 }
 
-common::PoolStatistics ClientCore::GetPoolStatistics() const {
-    common::PoolStatistics stats;
-    stats.multi.reserve(multis_.size());
-    for (size_t i = 0; i < multis_.size(); i++) {
-        stats.multi.push_back(GetMultiStatistics(i));
-    };
-    return stats;
-}
-
-void ClientCore::SetDestinationMetricsAutoMaxSize(size_t max_size) {
-    destination_statistics_->SetAutoMaxSize(max_size);
-}
-
-const common::DestinationStatistics& ClientCore::GetDestinationStatistics() const { return *destination_statistics_; }
-
-void ClientCore::PushIdleEasy(std::shared_ptr<curl::easy>&& easy) noexcept {
+void Client::PushIdleEasy(std::shared_ptr<curl::easy>&& easy) noexcept {
     try {
         easy->reset();
         idle_queue_->enqueue(std::move(easy));
@@ -234,7 +182,7 @@ void ClientCore::PushIdleEasy(std::shared_ptr<curl::easy>&& easy) noexcept {
     DecPending();
 }
 
-std::shared_ptr<curl::easy> ClientCore::TryDequeueIdle() noexcept {
+std::shared_ptr<curl::easy> Client::TryDequeueIdle() noexcept {
     std::shared_ptr<curl::easy> result;
     if (!idle_queue_->try_dequeue(result)) {
         return {};
@@ -242,14 +190,7 @@ std::shared_ptr<curl::easy> ClientCore::TryDequeueIdle() noexcept {
     return result;
 }
 
-void ClientCore::SetTestsuiteConfig(TestsuiteConfig&& config) {
-    LOG_INFO() << "http client: configured for testsuite";
-    testsuite_config_ = std::make_shared<const TestsuiteConfig>(std::move(config));
-}
-
-void ClientCore::SetAllowedUrlsExtra(std::vector<std::string>&& urls) { allowed_urls_extra_.Assign(std::move(urls)); }
-
-void ClientCore::SetConfig(const impl::Config& config) {
+void Client::SetConfig(const impl::Config& config) {
     const auto pool_size = ClampToLong(config.connection_pool_size / multis_.size());
     if (pool_size * multis_.size() != config.connection_pool_size) {
         LOG_DEBUG()
@@ -259,15 +200,7 @@ void ClientCore::SetConfig(const impl::Config& config) {
     for (auto& multi : multis_) {
         multi->SetConnectionCacheSize(pool_size);
     }
-
-    connect_rate_limiter_->SetGlobalHttpLimits(config.throttle.http_connect_limit, config.throttle.http_connect_rate);
-    connect_rate_limiter_
-        ->SetGlobalHttpsLimits(config.throttle.https_connect_limit, config.throttle.https_connect_rate);
-    connect_rate_limiter_
-        ->SetPerHostLimits(config.throttle.per_host_connect_limit, config.throttle.per_host_connect_rate);
 }
-
-void ClientCore::ResetUserAgent(std::optional<std::string> user_agent) { user_agent_ = std::move(user_agent); }
 
 }  // namespace clients::http
 
